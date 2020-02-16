@@ -13,12 +13,12 @@ const discardedDirectoryPath = join(__dirname, 'discarded');
 let limitLines;
 let countFiles = 1;
 let currentFile;
-let adhesionColumns = { customer : 1, uf: 30, payment: 62, ocs_activation: 40 };
-let purchaseColumns = { customer : 1, uf: null, payment: 28, ocs_activation: 12 };
+let adhesionColumns = { customer: 1, uf: 30, payment: 62, ocs_activation: 40 };
+let purchaseColumns = { customer: 1, uf: null, payment: 28, ocs_activation: 12 };
 let kind_action;
 
 const readFiles = (error, files) => {
-  if(error){
+  if (error) {
     handdleError();
   }
   try {
@@ -41,7 +41,7 @@ const progressBar = (file, lines) => {
   console.log('-----------------------------------------------------------------------------');
   console.log(`File ${file}`);
   const progressBarLines = new cliProgress.SingleBar({
-    format:  `Progress |${colors.cyan('{bar}')}| {percentage}% || {value}/{total} || File ${countFiles}`,
+    format: `Progress |${colors.cyan('{bar}')}| {percentage}% || {value}/{total} || File ${countFiles}`,
     barCompleteChar: '\u2588',
     barIncompleteChar: '\u2591',
     hideCursor: true
@@ -63,73 +63,96 @@ const fileReader = file => {
     const dataFile = readFileSync(`${inputDirectoryPath}/${file}`, 'UTF-8');
     const lines = dataFile.split(/\r?\n/);
     checkDuplication(lines);
-    
+
   } catch (error) {
     handdleError(error);
   }
 }
 
 const checkFileExists = fileName => {
-  exists(fileName, exist => { 
+  exists(fileName, exist => {
     return exist;
   });
 }
 
 const writeLine = line => {
   try {
-    if(!checkFileExists(`${alteredDirectoryPath}/${currentFile}`)) {
+    if (!checkFileExists(`${alteredDirectoryPath}/${currentFile}`)) {
       closeSync(openSync(`${alteredDirectoryPath}/${currentFile}`, 'w'));
     }
-    appendFile(`${alteredDirectoryPath}/${currentFile}`, `${line}\n`, { encoding: 'UTF-8'}, error => {
+    appendFile(`${alteredDirectoryPath}/${currentFile}`, `${line}\n`, { encoding: 'UTF-8' }, error => {
       if (error) {
         throw new Error('Falha!');
       }
-    }); 
+    });
   } catch (error) {
     handdleError(error);
   }
 }
 
+const groupBy = (array, property) => {
+  return array.reduce((acc, obj) => {
+    const key = obj[property];
+    if (!acc[key]) {
+      acc[key] = [];
+    }
+    acc[key].push(obj);
+    return acc;
+  }, {});
+}
+
 const checkDuplication = lines => {
   const output = createWriteStream(`${outputDirectoryPath}/${currentFile}`);
   const outputDiscarded = createWriteStream(`${discardedDirectoryPath}/${currentFile}`);
-  const  progressBarLines = progressBar(currentFile, lines);
+  const progressBarLines = progressBar(currentFile, lines);
 
   let groupLines = {};
-  let columns = isAdhesion() ? {...adhesionColumns} : {...purchaseColumns};
-  
-  // Group
-  for (let line of lines) {
-      const arrLines = line.split('|');
-      const indexRoot = `${arrLines[columns.customer]}_${arrLines[columns.payment]}`;
-      if (groupLines[indexRoot] === undefined) {
-        groupLines[indexRoot] = [line];
-      } else {
-        groupLines[indexRoot].push(line);
-      }
-    }
-    
-    // Output
-    for (let group in groupLines) {
-      const linesAvailable = groupLines[group].filter(line => getColumn(line, columns.ocs_activation) !== '');
-      const linesPending = groupLines[group].filter(line => getColumn(line, columns.ocs_activation) === '');
-      limitLines = linesAvailable.length;
-    
-    const fullArray = [...linesAvailable, ...linesPending];
-    
-    const discardedArray = fullArray.slice(limitLines, fullArray.length);
-    for (let discartedLine of discardedArray) {
-      outputDiscarded.write(`${discartedLine}\n`);
-      progressBarLines.increment(fullArray.length - limitLines);
-    }
-    
-    const limitedArray = fullArray.slice(0, limitLines);
-    for (let line of limitedArray) {
-      const newLine = isAdhesion() ? dataTransformation(line) : line;
-      output.write(`${newLine}\n`);
-      progressBarLines.increment();
-    }
+  let columns = isAdhesion() ? { ...adhesionColumns } : { ...purchaseColumns };
+
+  const groupingLineArray = [];
+
+  for (const line of lines) {
+    const splitedLine = line.split('|');
+    groupingLineArray.push({ key: `${splitedLine[columns.customer]}-${splitedLine[columns.payment]}`, line });
   }
+
+  const groupedArrayLine = groupBy(groupingLineArray, 'key');
+  console.log(groupedArrayLine);
+
+  groupedArrayLine.fi
+
+  // Group
+  // for (let line of lines) {
+  //     const arrLines = line.split('|');
+  //     const indexRoot = `${arrLines[columns.customer]}_${arrLines[columns.payment]}`;
+  //     if (groupLines[indexRoot] === undefined) {
+  //       groupLines[indexRoot] = [line];
+  //     } else {
+  //       groupLines[indexRoot].push(line);
+  //     }
+  //   }
+
+  //   // Output
+  //   for (let group in groupLines) {
+  //     const linesAvailable = groupLines[group].filter(line => getColumn(line, columns.ocs_activation) !== '');
+  //     const linesPending = groupLines[group].filter(line => getColumn(line, columns.ocs_activation) === '');
+  //     limitLines = linesAvailable.length;
+
+  //   const fullArray = [...linesAvailable, ...linesPending];
+
+  //   const discardedArray = fullArray.slice(limitLines, fullArray.length);
+  //   for (let discartedLine of discardedArray) {
+  //     outputDiscarded.write(`${discartedLine}\n`);
+  //     progressBarLines.increment(fullArray.length - limitLines);
+  //   }
+
+  //   const limitedArray = fullArray.slice(0, limitLines);
+  //   for (let line of limitedArray) {
+  //     const newLine = isAdhesion() ? dataTransformation(line) : line;
+  //     output.write(`${newLine}\n`);
+  //     progressBarLines.increment();
+  //   }
+  // }
 
   output.end();
   outputDiscarded.end();
@@ -144,7 +167,7 @@ const dataTransformation = line => {
   dataLine[adhesionColumns.uf] = dataLine[adhesionColumns.uf] && dataLine[adhesionColumns.uf].toUpperCase();
 
   const findedCustomer = customers.find(customer => customer.customer_id === customerIdOfLine);
-  if(findedCustomer) {
+  if (findedCustomer) {
     dataLine[adhesionColumns.uf] = findedCustomer.uf.toUpperCase();
     writeLine(dataLine.join('|'));
   }
