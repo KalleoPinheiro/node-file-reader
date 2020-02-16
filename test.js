@@ -103,7 +103,7 @@ const groupBy = (array, property) => {
 }
 
 const checkIsAvailable = (line, column) => {
-return getColumn(line, column);
+  return getColumn(line, column);
 }
 
 let toRemove = [];
@@ -111,48 +111,50 @@ let toStore = [];
 let splitedNewLines = [];
 let newLines;
 let unique;
+
 const checkDuplication = lines => {
-    const storage = createWriteStream(`toStore/${currentFile}`);
-    const removed = createWriteStream(`toRemove/${currentFile}`);
-    const  progressBarLines = progressBar(currentFile, lines);
+  const storage = createWriteStream(`toStore/${currentFile}`);
+  const removed = createWriteStream(`toRemove/${currentFile}`);
+  const progressBarLines = progressBar(currentFile, lines);
 
-    for (const line of lines) {
-        const splitedOriginalLines = line.split('|');
-        splitedNewLines.push([...splitedOriginalLines.slice(0, 12), ...splitedOriginalLines.slice(13, splitedOriginalLines.length)].join('|'));
-    }
-    for (const line of splitedNewLines) {
-        if (toStore.includes(line)) {
-            toRemove.push(line);
-            removed.write(`${line}\n`);
-            progressBarLines.increment();
-        }
-        if(splitedNewLines.includes(line)) {
-            toStore.push(line);
-            storage.write(`${line}\n`);
-            progressBarLines.increment();
-        }
-    }
-    
-    // const storageSet = new Set(toStore);
-    // const removedSet = new Set(toRemove);
-    // var meuArr = [...diff(storageSet, removedSet)];
-    // storage.write(`${meuArr.join('|\n')}`);
+  for (const line of lines) {
+    const splitedOriginalLines = line.split('|');
+    splitedNewLines.push([...splitedOriginalLines.slice(0, 12), ...splitedOriginalLines.slice(13, splitedOriginalLines.length)].join('|'));
+  }
 
-    removed.end();
-    storage.end();
-    progressBarLines.stop();
+  for (const line of splitedNewLines) {
+    if (toStore.includes(line)) {
+      toRemove.push(line);
+      removed.write(`${line}\n`);
+      progressBarLines.increment();
+    }
+    if (splitedNewLines.includes(line)) {
+      toStore.push(line);
+      // storage.write(`${line}\n`);
+      progressBarLines.increment();
+    }
+  }
+
+  const storageSet = new Set(toStore);
+  // const removedSet = new Set(toRemove);
+  // var meuArr = [...diff(storageSet, removedSet)];
+  storage.write(`${[...storageSet].join('|\n')}`);
+
+  removed.end();
+  storage.end();
+  progressBarLines.stop();
 }
 
 const diff = (setA, setB) => {
   var _diff = new Set(setA);
-    for (var elem of setB) {
-        if (_diff.has(elem)) {
-            _diff.delete(elem);
-        } else {
-            _diff.add(elem);
-        }
+  for (var elem of setB) {
+    if (_diff.has(elem)) {
+      _diff.delete(elem);
+    } else {
+      _diff.add(elem);
     }
-    return _diff;
+  }
+  return _diff;
 }
 
 // console.log(toRemove.length);
@@ -164,7 +166,7 @@ const diff = (setA, setB) => {
 
 //   let groupLines = {};
 //   let columns = isAdhesion() ? {...adhesionColumns} : {...purchaseColumns};
-  
+
 //   // Group
 //   for (let line of lines) {
 //       const arrLines = line.split('|');
@@ -175,14 +177,14 @@ const diff = (setA, setB) => {
 //         groupLines[indexRoot].push(line);
 //       }
 //     }
-    
+
 //     // Output
 //     for (let group in groupLines) {
 //     const linesAvailable = groupLines[group].filter(line => checkIsAvailable(line, columns.ocs_activation));
 //     const linesPending = groupLines[group].filter(line => !checkIsAvailable(line, columns.ocs_activation));
 
 //     const fullArray = [...linesAvailable, ...linesPending];
-    
+
 //     const discardedArray = fullArray.slice((linesAvailable.length));
 
 //     const toDiscart = discardedArray.length > 9 ? discardedArray : [];
@@ -191,7 +193,7 @@ const diff = (setA, setB) => {
 //       outputDiscarded.write(`${discartedLine}\n`);
 //       progressBarLines.increment();
 //     }
-    
+
 //     const limitedArray = fullArray.slice(-(linesAvailable.length + toDiscart.length));
 
 //     for (let line of limitedArray) {
