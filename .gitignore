@@ -1,3 +1,4 @@
+COMPRA E SERVIÇOS - ORIGINAIS/
 # Logs
 logs
 *.log
@@ -39,6 +40,7 @@ build/Release
 
 # Dependency directories
 node_modules/
+.yarn/
 jspm_packages/
 
 # TypeScript v1 declaration files

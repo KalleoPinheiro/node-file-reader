@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "cli-progress": "^3.6.0",
+    "colors": "^1.4.0"
+  }
+}
