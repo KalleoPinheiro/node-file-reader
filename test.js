@@ -117,22 +117,20 @@ const checkDuplication = lines => {
   const removed = createWriteStream(`toRemove/${currentFile}`);
   const progressBarLines = progressBar(currentFile, lines);
 
-  for (const line of lines) {
-    const splitedOriginalLines = line.split('|');
-    splitedNewLines.push([...splitedOriginalLines.slice(0, 12), ...splitedOriginalLines.slice(13, splitedOriginalLines.length)].join('|'));
-  }
+  // for (const line of lines) {
+  //   const splitedOriginalLines = line.split('|');
+  //   splitedNewLines.push([...splitedOriginalLines.slice(0, 12), ...splitedOriginalLines.slice(13, splitedOriginalLines.length)].join('|'));
+  // }
 
-  for (const line of splitedNewLines) {
+  for (const line of lines) {
     if (toStore.includes(line)) {
       toRemove.push(line);
       removed.write(`${line}\n`);
       progressBarLines.increment();
+      return;
     }
-    if (splitedNewLines.includes(line)) {
-      toStore.push(line);
-      // storage.write(`${line}\n`);
-      progressBarLines.increment();
-    }
+    toStore.push(line);
+    progressBarLines.increment();
   }
 
   const storageSet = new Set(toStore);

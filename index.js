@@ -8,12 +8,11 @@ const inputDirectoryPath = join(__dirname, 'files');
 const outputDirectoryPath = join(__dirname, 'out');
 const alteredDirectoryPath = join(__dirname, 'altered');
 const discardedDirectoryPath = join(__dirname, 'discarded');
-const limitLines = 9;
 
 let countFiles = 1;
 let currentFile;
-let adhesionColumns = { customer: 1, uf: 30, payment: 62, ocs_activation: 40 };
-let purchaseColumns = { customer: 1, uf: null, payment: 28, ocs_activation: 12 };
+let adhesionColumns = { customer: 1, uf: 30, payment: 62, ocs_activation: 40, description: 41 };
+let purchaseColumns = { customer: 1, uf: null, payment: 28, ocs_activation: 12, description: 13 };
 let kind_action;
 let linesPending = [];
 let linesAvailable = [];
@@ -37,7 +36,7 @@ const progressBar = (file, lines) => {
   console.log('-----------------------------------------------------------------------------');
   console.log(`File ${file}`);
   const progressBarLines = new cliProgress.SingleBar({
-    format: `Progress |${colors.cyan('{bar}')}| {percentage}% || {value}/{total} || File ${countFiles}`,
+    format: `Progress |${colors.cyan('{bar}')}| {percentage}% || {value}/{total} || File ${countFiles} - ${currentFile}`,
     barCompleteChar: '\u2588',
     barIncompleteChar: '\u2591',
     hideCursor: true
@@ -58,7 +57,7 @@ const fileReader = file => {
   try {
     const dataFile = readFileSync(`${inputDirectoryPath}/${file}`, 'UTF-8');
     const lines = dataFile.split(/\r?\n/);
-    checkDuplication(lines);
+    checkIsDuplicate(lines);
 
   } catch (error) {
     handdleError(error);
@@ -86,12 +85,7 @@ const writeLine = line => {
   }
 }
 
-const checkIsAvailable = (line, column) => {
-  const arrLine = line.split('|');
-  return arrLine[column] || null;
-}
-
-const checkDuplication = lines => {
+const checkIsDuplicate = lines => {
   const output = createWriteStream(`${outputDirectoryPath}/${currentFile}`);
   const outputDiscarded = createWriteStream(`${discardedDirectoryPath}/${currentFile}`);
   const progressBarLines = progressBar(currentFile, lines);
@@ -99,7 +93,6 @@ const checkDuplication = lines => {
   let groupLines = {};
   let columns = isAdhesion() ? { ...adhesionColumns } : { ...purchaseColumns };
 
-  // Group
   for (let line of lines) {
     const arrLines = line.split('|');
     const indexRoot = `${arrLines[columns.customer]}_${arrLines[columns.payment]}`;
@@ -110,37 +103,34 @@ const checkDuplication = lines => {
     }
   }
 
-  // Output
   for (let group in groupLines) {
+    groupLines[group].reduce(
+      (_, el) => {
+        if (linesAvailable.length &&
+          linesAvailable.find(line => line.split('|')[columns.description] === el.split('|')[columns.description])) {
+          linesPending.push(el);
+        } else {
+          linesAvailable.push(el);
+          return el;
+        }
+      }, []
+    );
 
-    // if(groupLines[group].length > 9) {
-    //   console.log(groupLines[group]);
-    // }
-''
-    let linesAvailable = groupLines[group].filter(line => checkIsAvailable(line, columns.ocs_activation));
-    let linesPending = groupLines[group].length > 9 ? groupLines[group].filter(line => !checkIsAvailable(line, columns.ocs_activation)) : [];
-    
-    let fullArray = [...linesAvailable, ...linesPending];
-
-    let discardedArray = linesPending.length !== 0 ? fullArray.slice(-(linesPending.length)) : [...linesPending];
-
-    for (let discartedLine of discardedArray) {
+    for (let discartedLine of linesPending) {
       outputDiscarded.write(`${discartedLine}\n`);
       progressBarLines.increment();
     }
 
-    let limitedArray = linesPending.length !== 0 ? fullArray.slice(0, linesAvailable.length) : [...linesAvailable];
-
-    for (let line of limitedArray) {
+    for (let line of linesAvailable) {
       const newLine = isAdhesion() ? dataTransformation(line) : line;
       output.write(`${newLine}\n`);
       progressBarLines.increment();
     }
-    linesAvailable =[];
-    linesPending =[];
-    fullArray =[];
-    discardedArray =[];
-    limitedArray =[];
+    linesAvailable = [];
+    linesPending = [];
+    fullArray = [];
+    discardedArray = [];
+    limitedArray = [];
   }
   output.end();
   outputDiscarded.end();
@@ -160,7 +150,6 @@ const dataTransformation = line => {
     dataLine[adhesionColumns.uf] = findedCustomer.uf.toUpperCase();
     writeLine(dataLine.join('|'));
   }
-
   return dataLine.join('|');
 }
 
