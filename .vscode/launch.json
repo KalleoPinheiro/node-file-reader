@@ -7,29 +7,20 @@
         {
             "type": "node",
             "request": "launch",
-            "name": "Launch Program INDEX",
+            "name": "Launch Program ALTERAÇÃO",
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "program": "${workspaceFolder}/index.js"
+            "program": "${workspaceFolder}/alteration.js"
         },
         {
             "type": "node",
             "request": "launch",
-            "name": "Launch Program TEST",
+            "name": "Launch Program DUPLICITY",
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "program": "${workspaceFolder}/test.js"
-        },
-        {
-            "type": "node",
-            "request": "launch",
-            "name": "Launch Program MAIN",
-            "skipFiles": [
-                "<node_internals>/**"
-            ],
-            "program": "${workspaceFolder}/main.js"
+            "program": "${workspaceFolder}/alteration-and-duplicity.js"
         }
     ]
 }

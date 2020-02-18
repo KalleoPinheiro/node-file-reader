@@ -3,7 +3,7 @@ const {
   readFileSync,
   appendFile,
   readdir,
-  stat,
+  exists,
   closeSync,
   openSync,
   createWriteStream
@@ -11,18 +11,31 @@ const {
 const cliProgress = require('cli-progress')
 const colors = require('colors')
 const customers = require('./customers.js')
-const { columns, regex, kind } = require('./constants')
 
 const inputDirectoryPath = join(__dirname, 'files')
 const outputDirectoryPath = join(__dirname, 'out')
 const alteredDirectoryPath = join(__dirname, 'altered')
 const discardedDirectoryPath = join(__dirname, 'discarded')
-const linesPending = []
-const linesAvailable = []
 
 let countFiles = 1
 let currentFile
-let kindAction
+const adhesionColumns = {
+  customer: 1,
+  uf: 30,
+  payment: 62,
+  ocs_activation: 40,
+  description: 41
+}
+const purchaseColumns = {
+  customer: 1,
+  uf: null,
+  payment: 28,
+  ocs_activation: 12,
+  description: 13
+}
+let kind_action
+let linesPending = []
+let linesAvailable = []
 
 const readFiles = (error, files) => {
   if (error) {
@@ -60,25 +73,11 @@ const progressBar = (file, lines) => {
 }
 
 const checkFileName = name => {
-  switch (name) {
-    case name.match(regex.adhesion):
-      kindAction = kind.adhesion
-      break
-    case name.match(regex.purchase):
-      kindAction = kind.purchase
-      break
-    case name.match(regex.registerChange):
-      kindAction = kind.registerChange
-      break
-  }
+  kind_action = name.match(/ADESAO_PRIMEIRA_COMPRA/g) ? 'adhesion' : 'purchase'
 }
 
 const isAdhesion = () => {
-  return !!(kindAction === kind.adhesion)
-}
-
-const isRegisterChange = () => {
-  return !!(kindAction === kind.registerChange)
+  return !!(kind_action === 'adhesion')
 }
 
 const fileReader = file => {
@@ -92,7 +91,7 @@ const fileReader = file => {
 }
 
 const checkFileExists = fileName => {
-  stat(fileName, exist => {
+  exists(fileName, exist => {
     return exist
   })
 }
@@ -117,17 +116,6 @@ const writeLine = line => {
   }
 }
 
-const setColumns = () => {
-  switch (kindAction) {
-    case kind.adhesion:
-      return { ...columns.adhesion }
-    case kind.purchase:
-      return { ...columns.purchase }
-    case kind.registerChange:
-      return { ...columns.registerChange }
-  }
-}
-
 const checkIsPending = (line, column) => {
   const arrLine = line.split('|')
   return arrLine[column] || null
@@ -139,13 +127,14 @@ const checkIsDuplicate = lines => {
     `${discardedDirectoryPath}/${currentFile}`
   )
   const progressBarLines = progressBar(currentFile, lines)
+
   const groupLines = {}
-  const columnKind = setColumns()
+  const columns = isAdhesion() ? { ...adhesionColumns } : { ...purchaseColumns }
 
   for (const line of lines) {
     const arrLines = line.split('|')
-    const indexRoot = `${arrLines[columnKind.customer]}_${
-      arrLines[columnKind.payment]
+    const indexRoot = `${arrLines[columns.customer]}_${
+      arrLines[columns.payment]
     }`
     if (groupLines[indexRoot] === undefined) {
       groupLines[indexRoot] = [line]
@@ -157,10 +146,10 @@ const checkIsDuplicate = lines => {
   for (const group in groupLines) {
     const full = [
       ...groupLines[group].filter(
-        item => checkIsPending(item, columnKind.ocs_activation) !== null
+        item => checkIsPending(item, columns.ocs_activation) !== null
       ),
       ...groupLines[group].filter(
-        item => checkIsPending(item, columnKind.ocs_activation) === null
+        item => checkIsPending(item, columns.ocs_activation) === null
       )
     ]
     full.reduce((_, el) => {
@@ -168,8 +157,8 @@ const checkIsDuplicate = lines => {
         linesAvailable.length &&
         linesAvailable.find(
           line =>
-            line.split('|')[columnKind.description] ===
-            el.split('|')[columnKind.description]
+            line.split('|')[columns.description] ===
+            el.split('|')[columns.description]
         )
       ) {
         linesPending.push(el)
@@ -185,11 +174,15 @@ const checkIsDuplicate = lines => {
     }
 
     for (const line of linesAvailable) {
-      const newLine =
-        isAdhesion() || isRegisterChange() ? dataTransformation(line) : line
+      const newLine = isAdhesion() ? dataTransformation(line) : line
       output.write(`${newLine}\n`)
       progressBarLines.increment()
     }
+    linesAvailable = []
+    linesPending = []
+    fullArray = []
+    discardedArray = []
+    limitedArray = []
   }
   output.end()
   outputDiscarded.end()
@@ -199,18 +192,17 @@ const checkIsDuplicate = lines => {
 
 const dataTransformation = line => {
   const dataLine = line.split('|')
-  const columns = setColumns()
-  const customerIdOfLine = dataLine[columns.customer]
-  dataLine[columns.city_code] = ''
-  dataLine[columns.uf_code] = ''
-  dataLine[columns.uf] =
-    dataLine[columns.uf] && dataLine[columns.uf].toUpperCase()
+  const customerIdOfLine = dataLine[1]
+  dataLine[27] = ''
+  dataLine[29] = ''
+  dataLine[adhesionColumns.uf] =
+    dataLine[adhesionColumns.uf] && dataLine[adhesionColumns.uf].toUpperCase()
 
   const findedCustomer = customers.find(
     customer => customer.customer_id === customerIdOfLine
   )
   if (findedCustomer) {
-    dataLine[columns.uf] = findedCustomer.uf.toUpperCase()
+    dataLine[adhesionColumns.uf] = findedCustomer.uf.toUpperCase()
     writeLine(dataLine.join('|'))
   }
   return dataLine.join('|')

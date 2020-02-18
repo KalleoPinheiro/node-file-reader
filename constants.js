@@ -15,7 +15,7 @@ const columns = {
     description: 13
   },
   registerChange: {
-    customer: 1,
+    customer: 2,
     uf: 19,
     city_code: 16,
     uf_code: 18
