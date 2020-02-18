@@ -132,7 +132,6 @@ const checkIsDuplicate = lines => {
       output.write(`${newLine}\n`);
       progressBarLines.increment();
     }
-
     linesAvailable = [];
     linesPending = [];
     fullArray = [];
