@@ -109,8 +109,7 @@ const checkIsDuplicate = lines => {
   }
 
   for (let group in groupLines) {
-    const full = [...groupLines[group].filter(item => checkIsPending(item, columns.ocs_activation) !== null), ...groupLines[group].filter(item => checkIsPending(item, columns.ocs_activation) === null)];
-    full.reduce(
+    groupLines[group].reduce(
       (_, el) => {
         if (linesAvailable.length &&
           linesAvailable.find(line => line.split('|')[columns.description] === el.split('|')[columns.description])) {
@@ -132,7 +131,6 @@ const checkIsDuplicate = lines => {
       output.write(`${newLine}\n`);
       progressBarLines.increment();
     }
-
     linesAvailable = [];
     linesPending = [];
     fullArray = [];

@@ -1,55 +1,173 @@
+const { join } = require('path');
+const { readFileSync, appendFile, readdir, exists, closeSync, openSync, createWriteStream } = require('fs');
+const cliProgress = require('cli-progress');
+const colors = require('colors');
+const customers = require('./customers.js');
 
+const inputDirectoryPath = join(__dirname, 'files');
+const outputDirectoryPath = join(__dirname, 'out');
+const alteredDirectoryPath = join(__dirname, 'altered');
+const discardedDirectoryPath = join(__dirname, 'discarded');
 
-// const checkDuplication = lines => {
-//   const output = createWriteStream(`${outputDirectoryPath}/${currentFile}`);
-//   const outputDiscarded = createWriteStream(`${discardedDirectoryPath}/${currentFile}`);
-//   const progressBarLines = progressBar(currentFile, lines);
+let countFiles = 1;
+let currentFile;
+let adhesionColumns = { customer: 1, uf: 30, payment: 62, ocs_activation: 40, description: 41 };
+let purchaseColumns = { customer: 1, uf: null, payment: 28, ocs_activation: 12, description: 13 };
+let kind_action;
+let linesPending = [];
+let linesAvailable = [];
 
-//   let columns = isAdhesion() ? { ...adhesionColumns } : { ...purchaseColumns };
+const readFiles = (error, files) => {
+  if (error) {
+    handdleError();
+  }
+  try {
+    for (const file of files) {
+      currentFile = file;
+      checkFileName(file);
+      fileReader(file);
+    }
+  } catch (error) {
+    handdleError(error);
+  }
+}
 
-//   const groupingLineArray = [];
+const progressBar = (file, lines) => {
+  console.log('-----------------------------------------------------------------------------');
+  console.log(`File ${file}`);
+  const progressBarLines = new cliProgress.SingleBar({
+    format: `Progress |${colors.cyan('{bar}')}| {percentage}% || {value}/{total} || File ${countFiles} - ${currentFile}`,
+    barCompleteChar: '\u2588',
+    barIncompleteChar: '\u2591',
+    hideCursor: true
+  }, cliProgress.Presets.shades_classic);
+  progressBarLines.start(lines.length, 0);
+  return progressBarLines;
+}
 
-//   for (const line of lines) {
-//     const splitedLine = line.split('|');
-//     groupingLineArray.push({ key: `${splitedLine[columns.customer]}-${splitedLine[columns.payment]}`, line });
-//   }
+const checkFileName = name => {
+  kind_action = name.match(/ADESAO_PRIMEIRA_COMPRA/g) ? 'adhesion' : 'purchase';
+}
 
-//   const groupedArrayLine = groupBy(groupingLineArray, 'key');
-//   const customersID = Object.keys(groupedArrayLine);
-//   for (let customer in customersID) {
-//     const obj = groupedArrayLine[customersID[customer]];
-//     const mapped = obj.map(item => item.line.split('|'));
-//     const preenchido = mapped.filter(item => item[columns.ocs_activation] !== '');
-//     const vazios = mapped.filter(item => item[columns.ocs_activation] === '');
+const isAdhesion = () => {
+  return !!(kind_action === 'adhesion');
+}
 
-//     if(preenchido.length){
-//       const line = preenchido.map(el => el.join('|'))[0];
-//       if(line){
-//         linesAvailable.push(line);
-//       }
-//     }
+const fileReader = file => {
+  try {
+    const dataFile = readFileSync(`${inputDirectoryPath}/${file}`, 'UTF-8');
+    const lines = dataFile.split(/\r?\n/);
+    checkIsDuplicate(lines);
 
-//     if(vazios.length) {
-//       const line = vazios.map(el => el.join('|'))[0];
-//       if(line){
-//         linesPending.push(line);
-//       }
-//     }
-//   }
+  } catch (error) {
+    handdleError(error);
+  }
+}
 
-//   for (let discartedLine of linesPending) {
-//     outputDiscarded.write(`${discartedLine}\n`);
-//     progressBarLines.increment();
-//   }
+const checkFileExists = fileName => {
+  exists(fileName, exist => {
+    return exist;
+  });
+}
 
-//   for (let line of linesAvailable) {
-//     const newLine = isAdhesion() ? dataTransformation(line) : line;
-//     output.write(`${newLine}\n`);
-//     progressBarLines.increment();
-//   }
-  
-//   output.end();
-//   outputDiscarded.end();
-//   progressBarLines.stop();
-//   countFiles++;
-// }
+const writeLine = line => {
+  try {
+    if (!checkFileExists(`${alteredDirectoryPath}/${currentFile}`)) {
+      closeSync(openSync(`${alteredDirectoryPath}/${currentFile}`, 'w'));
+    }
+    appendFile(`${alteredDirectoryPath}/${currentFile}`, `${line}\n`, { encoding: 'UTF-8' }, error => {
+      if (error) {
+        throw new Error('Falha!');
+      }
+    });
+  } catch (error) {
+    handdleError(error);
+  }
+}
+
+const checkIsPending = (line, column) => {
+  const arrLine = line.split('|');
+  return arrLine[column] || null;
+}
+
+const checkIsDuplicate = lines => {
+  const output = createWriteStream(`${outputDirectoryPath}/${currentFile}`);
+  const outputDiscarded = createWriteStream(`${discardedDirectoryPath}/${currentFile}`);
+  const progressBarLines = progressBar(currentFile, lines);
+
+  let groupLines = {};
+  let columns = isAdhesion() ? { ...adhesionColumns } : { ...purchaseColumns };
+
+  for (let line of lines) {
+    const arrLines = line.split('|');
+    const indexRoot = `${arrLines[columns.customer]}_${arrLines[columns.payment]}`;
+    if (groupLines[indexRoot] === undefined) {
+      groupLines[indexRoot] = [line];
+    } else {
+      groupLines[indexRoot].push(line);
+    }
+  }
+
+  for (let group in groupLines) {
+    groupLines[group].reduce(
+      (_, el) => {
+        if (linesAvailable.length &&
+          linesAvailable.find(line => line.split('|')[columns.description] === el.split('|')[columns.description])) {
+          if (checkIsPending(el, columns.ocs_activation) === null) {
+            linesPending.push(el);
+          } else {
+            linesAvailable.push(el);
+          }
+        } else {
+          if (checkIsPending(el, columns.ocs_activation) !== null) {
+            linesAvailable.push(el);
+          } else {
+            linesPending.push(el);
+          }
+          return el;
+        }
+      }, []
+    );
+
+    for (let discartedLine of linesPending) {
+      outputDiscarded.write(`${discartedLine}\n`);
+      progressBarLines.increment();
+    }
+
+    for (let line of linesAvailable) {
+      const newLine = isAdhesion() ? dataTransformation(line) : line;
+      output.write(`${newLine}\n`);
+      progressBarLines.increment();
+    }
+    linesAvailable = [];
+    linesPending = [];
+    fullArray = [];
+    discardedArray = [];
+    limitedArray = [];
+  }
+  output.end();
+  outputDiscarded.end();
+  progressBarLines.stop();
+  countFiles++;
+}
+
+const dataTransformation = line => {
+  const dataLine = line.split('|');
+  const customerIdOfLine = dataLine[1];
+  dataLine[27] = '';
+  dataLine[29] = '';
+  dataLine[adhesionColumns.uf] = dataLine[adhesionColumns.uf] && dataLine[adhesionColumns.uf].toUpperCase();
+
+  const findedCustomer = customers.find(customer => customer.customer_id === customerIdOfLine);
+  if (findedCustomer) {
+    dataLine[adhesionColumns.uf] = findedCustomer.uf.toUpperCase();
+    writeLine(dataLine.join('|'));
+  }
+  return dataLine.join('|');
+}
+
+const handdleError = error => {
+  return console.log(error);
+}
+
+readdir(inputDirectoryPath, readFiles);
