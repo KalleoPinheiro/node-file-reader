@@ -1,11 +1,11 @@
 COMPRA E SERVIÇOS/
 ADESÃO/
-ADESAO_VALIDACAO.zip
-COMPRAS_SERVICO_VALIDACAO.zip
-out
-files
-discarded
-altered
+out/
+files/
+discarded/
+altered/
+BKPS/
+ZIP FILES/
 
 # Logs
 logs
