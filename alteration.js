@@ -5,13 +5,15 @@ const {
   readdir,
   stat,
   closeSync,
-  openSync
+  openSync,
+  createWriteStream
 } = require('fs')
 const cliProgress = require('cli-progress')
 const colors = require('colors')
 const customers = require('./customers')
 const { columns, kind, regex } = require('./constants')
 
+const outputDirectoryPath = join(__dirname, 'out')
 const inputDirectoryPath = join(__dirname, 'files')
 const alteredDirectoryPath = join(__dirname, 'altered')
 
@@ -62,9 +64,17 @@ const checkFileName = name => {
 
 const fileReader = file => {
   try {
+    const output = createWriteStream(`${outputDirectoryPath}/${currentFile}`)
     const dataFile = readFileSync(`${inputDirectoryPath}/${file}`, 'UTF-8')
     const lines = dataFile.split(/\r?\n/)
-    dataTransformation(lines)
+    const progressBarLines = progressBar(currentFile, lines)
+    for (const line of lines) {
+      const transformedLine = dataTransformation(line)
+      output.write(`${transformedLine}\n`)
+      progressBarLines.increment()
+    }
+    progressBarLines.stop()
+    output.end()
   } catch (error) {
     handdleError(error)
   }
@@ -107,28 +117,25 @@ const setColumns = () => {
   }
 }
 
-const dataTransformation = lines => {
-  const progressBarLines = progressBar(currentFile, lines)
-  for (const line of lines) {
-    const dataLine = line.split('|')
-    const columns = setColumns()
-    const customerIdOfLine = dataLine[columns.customer]
-    dataLine[columns.city_code] = ''
-    dataLine[columns.uf_code] = ''
-    dataLine[columns.uf] =
-      dataLine[columns.uf] && dataLine[columns.uf].toUpperCase()
+const dataTransformation = line => {
+  const dataLine = line.split('|')
+  const columns = setColumns()
+  const customerIdOfLine = dataLine[columns.customer]
+  dataLine[columns.city_code] = ''
+  dataLine[columns.uf_code] = ''
+  dataLine[columns.uf] =
+    dataLine[columns.uf] && dataLine[columns.uf].toUpperCase()
 
-    const findedCustomer = customers.find(
-      customer => customer.customer_id === customerIdOfLine
-    )
+  const findedCustomer = customers.find(
+    customer => customer.customer_id === customerIdOfLine
+  )
 
-    if (findedCustomer) {
-      dataLine[columns.uf] = findedCustomer.uf.toUpperCase()
-      writeLine(dataLine.join('|'))
-    }
-    progressBarLines.increment()
+  if (findedCustomer) {
+    dataLine[columns.uf] = findedCustomer.uf.toUpperCase()
+    writeLine(dataLine.join('|'))
   }
-  progressBarLines.stop()
+
+  return dataLine.join('|')
 }
 
 const handdleError = error => {
