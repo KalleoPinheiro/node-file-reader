@@ -1,26 +1,29 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
-    "version": "0.2.0",
-    "configurations": [
-        {
-            "type": "node",
-            "request": "launch",
-            "name": "Launch Program ALTERAÇÃO",
-            "skipFiles": [
-                "<node_internals>/**"
-            ],
-            "program": "${workspaceFolder}/alteration.js"
-        },
-        {
-            "type": "node",
-            "request": "launch",
-            "name": "Launch Program DUPLICITY",
-            "skipFiles": [
-                "<node_internals>/**"
-            ],
-            "program": "${workspaceFolder}/alteration-and-duplicity.js"
-        }
-    ]
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Launch Program ALTERATION",
+      "skipFiles": ["<node_internals>/**"],
+      "program": "${workspaceFolder}/alteration.js"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Launch Program DUPLICITY",
+      "skipFiles": ["<node_internals>/**"],
+      "program": "${workspaceFolder}/alteration-and-duplicity.js"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Launch Program FINDER",
+      "skipFiles": ["<node_internals>/**"],
+      "program": "${workspaceFolder}/finder.js"
+    }
+  ]
 }
