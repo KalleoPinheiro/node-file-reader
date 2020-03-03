@@ -24,6 +24,27 @@
       "name": "Launch Program FINDER",
       "skipFiles": ["<node_internals>/**"],
       "program": "${workspaceFolder}/finder.js"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Launch Program FINDER2",
+      "skipFiles": ["<node_internals>/**"],
+      "program": "${workspaceFolder}/finder2.js"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Launch Program FINDER3",
+      "skipFiles": ["<node_internals>/**"],
+      "program": "${workspaceFolder}/finder3.js"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Launch Program FINDER4",
+      "skipFiles": ["<node_internals>/**"],
+      "program": "${workspaceFolder}/finder4.js"
     }
   ]
 }
