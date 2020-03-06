@@ -123,6 +123,11 @@ const dataTransformation = line => {
   const customerIdOfLine = dataLine[columns.customer]
   dataLine[columns.city_code] = ''
   dataLine[columns.uf_code] = ''
+  dataLine[columns.adress_number] =
+    dataLine[columns.adress_number] &&
+    dataLine[columns.adress_number].trim().toLocaleUpperCase() === 'S/N'
+      ? '00000'
+      : dataLine[columns.adress_number]
   dataLine[columns.uf] =
     dataLine[columns.uf] && dataLine[columns.uf].toUpperCase()
 

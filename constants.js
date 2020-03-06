@@ -6,7 +6,8 @@ const columns = {
     uf: 30,
     payment: 62,
     ocs_activation: 40,
-    description: 41
+    description: 41,
+    adress_number: 24
   },
   purchase: {
     customer: 1,
@@ -18,7 +19,8 @@ const columns = {
     customer: 2,
     uf: 19,
     city_code: 16,
-    uf_code: 18
+    uf_code: 18,
+    adress_number: 13
   }
 }
 

@@ -24,7 +24,8 @@ const adhesionColumns = {
   uf: 30,
   payment: 62,
   ocs_activation: 40,
-  description: 41
+  description: 41,
+  adress_number: 24
 }
 const purchaseColumns = {
   customer: 1,
@@ -195,6 +196,12 @@ const dataTransformation = line => {
   const customerIdOfLine = dataLine[1]
   dataLine[27] = ''
   dataLine[29] = ''
+  dataLine[29] = ''
+  dataLine[24] =
+    dataLine[adhesionColumns.adress_number] &&
+    dataLine[adhesionColumns.adress_number].trim().toLocaleUpperCase() === 'S/N'
+      ? '00000'
+      : dataLine[adhesionColumns.adress_number]
   dataLine[adhesionColumns.uf] =
     dataLine[adhesionColumns.uf] && dataLine[adhesionColumns.uf].toUpperCase()
 

@@ -5,7 +5,6 @@ const { readFileSync, readdir, createWriteStream } = require('fs')
 const payments = require('./payments')
 const inputDirectoryPath = join(__dirname, 'files')
 const locatedDirectoryPath = join(__dirname, 'located')
-
 const foundedPayments = []
 
 const progressBar = files => {
